@@ -15,9 +15,10 @@ selected_date = st.sidebar.date_input("తేదీ", value=date.today())
 
 if st.sidebar.button("పంచాంగం చూడు"):
     try:
-        # Create Time object
-        time_str = f"12:00 {selected_date.day:02d}/{selected_date.month:02d}/{selected_date.year}"
-        geo = GeoLocation(place_name, 78.4867, 17.3850)  # Hyderabad coords
+        # Correct Format with Timezone (IST = +05:30)
+        time_str = f"12:00 {selected_date.day:02d}/{selected_date.month:02d}/{selected_date.year} +05:30"
+        
+        geo = GeoLocation(place_name, 78.4867, 17.3850)  # Hyderabad
         birth_time = Time(time_str, geo)
 
         st.success(f"**{selected_date} - {place_name}**")
@@ -33,11 +34,11 @@ if st.sidebar.button("పంచాంగం చూడు"):
             st.write(f"**వారం:** {Calculate.Weekday(birth_time)}")
 
         with col2:
-            st.subheader("🌅 సూర్యోదయం")
+            st.subheader("🌅 సూర్యోదయం & సూర్యాస్తమయం")
             st.write(f"**సూర్యోదయం:** {Calculate.Sunrise(birth_time)}")
             st.write(f"**సూర్యాస్తమయం:** {Calculate.Sunset(birth_time)}")
 
-        # Rahukalam etc.
+        # అశుభ కాలాలు
         st.subheader("⏰ అశుభ కాలాలు")
         data = {
             "కాలం": ["రాహుకాలం", "యమగండం", "గులిక కాలం"],
@@ -55,7 +56,7 @@ if st.sidebar.button("పంచాంగం చూడు"):
         st.markdown("""
         **శుభ లగ్నాల్లో చేయదగిన పనులు:**
         - వివాహం, గృహ ప్రవేశం, ఉపనయనం
-        - కొత్త వ్యాపారం ప్రారంభం
+        - కొత్త వ్యాపారం / ప్రాజెక్ట్ ప్రారంభం
         - హోమాలు, దానాలు, మంత్ర జపం
         - ముఖ్య నిర్ణయాలు
         """)
@@ -63,4 +64,4 @@ if st.sidebar.button("పంచాంగం చూడు"):
     except Exception as e:
         st.error(f"లోపం: {str(e)}")
 
-st.caption("⚠️ FreeAPIUser కీతో పని చేస్తుంది. ముఖ్య పనులకు స్థానిక పంచాంగం చూడండి.")
+st.caption("⚠️ VedAstro API ఉపయోగించి గణన చేయబడింది. ముఖ్య కార్యాలకు స్థానిక పంచాంగం చూడండి.")
