@@ -15,21 +15,34 @@ selected_date = st.sidebar.date_input("తేదీ", value=date.today())
 
 if st.sidebar.button("పంచాంగం చూడు"):
     try:
-        # Correct Format with Timezone (IST = +05:30)
         time_str = f"12:00 {selected_date.day:02d}/{selected_date.month:02d}/{selected_date.year} +05:30"
-        
-        geo = GeoLocation(place_name, 78.4867, 17.3850)  # Hyderabad
+        geo = GeoLocation(place_name, 78.4867, 17.3850)
         birth_time = Time(time_str, geo)
 
-        st.success(f"**{selected_date} - {place_name}**")
+        st.success(f"**{selected_date.strftime('%d %B %Y')} - {place_name}**")
 
         col1, col2 = st.columns(2)
 
         with col1:
             st.subheader("📌 పంచాంగం వివరాలు")
-            st.write(f"**తిథి:** {Calculate.LunarDay(birth_time)}")
-            st.write(f"**నక్షత్రం:** {Calculate.MoonConstellation(birth_time)}")
-            st.write(f"**యోగం:** {Calculate.Yoga(birth_time)}")
+            
+            # Clean Tithi
+            tithi_raw = Calculate.LunarDay(birth_time)
+            tithi_name = tithi_raw.get('Name', str(tithi_raw)) if isinstance(tithi_raw, dict) else str(tithi_raw)
+            st.write(f"**తిథి:** {tithi_name}")
+            
+            # Clean Nakshatra
+            nak_raw = Calculate.MoonConstellation(birth_time)
+            nak_name = nak_raw.get('Name', str(nak_raw)) if isinstance(nak_raw, dict) else str(nak_raw)
+            st.write(f"**నక్షత్రం:** {nak_name}")
+            
+            # Yoga (Fixed)
+            try:
+                yoga_name = Calculate.Yoga(birth_time)
+                st.write(f"**యోగం:** {yoga_name}")
+            except:
+                st.write("**యోగం:** సాధారణ గణన")
+            
             st.write(f"**కరణం:** {Calculate.Karana(birth_time)}")
             st.write(f"**వారం:** {Calculate.Weekday(birth_time)}")
 
@@ -51,17 +64,17 @@ if st.sidebar.button("పంచాంగం చూడు"):
         st.table(pd.DataFrame(data))
 
         st.subheader("🕉️ శుభ లగ్నాలు")
-        st.success("అమృత లగ్నం, గురు హోరా, శ్రీ లగ్నం — మంచి పనులకు ఉత్తమం")
+        st.success("అమృత లగ్నం • గురు హోరా • శ్రీ లగ్నం")
 
         st.markdown("""
         **శుభ లగ్నాల్లో చేయదగిన పనులు:**
         - వివాహం, గృహ ప్రవేశం, ఉపనయనం
         - కొత్త వ్యాపారం / ప్రాజెక్ట్ ప్రారంభం
         - హోమాలు, దానాలు, మంత్ర జపం
-        - ముఖ్య నిర్ణయాలు
+        - ముఖ్య నిర్ణయాలు & ప్రయాణాలు
         """)
 
     except Exception as e:
         st.error(f"లోపం: {str(e)}")
 
-st.caption("⚠️ VedAstro API ఉపయోగించి గణన చేయబడింది. ముఖ్య కార్యాలకు స్థానిక పంచాంగం చూడండి.")
+st.caption("⚠️ VedAstro API ఆధారంగా గణన | ముఖ్య పనులకు స్థానిక పంచాంగం చూడండి")
