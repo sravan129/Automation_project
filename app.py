@@ -1,10 +1,11 @@
 import streamlit as st
 from datetime import date
 import pandas as pd
+import requests
 
 st.set_page_config(page_title="📅 తెలుగు పంచాంగం", layout="wide")
 st.title("🌟 తెలుగు పంచాంగం - రోజువారీ ముహూర్తాలు")
-st.markdown("### రాహుకాలం • యమగండం • గులిక • శుభ లగ్నాలు")
+st.markdown("### తిథి • నక్షత్రం • యోగం • కరణం • రాహుకాలం • శుభ లగ్నాలు")
 
 # Sidebar
 st.sidebar.header("📍 స్థలం & తేదీ")
@@ -12,58 +13,65 @@ place_name = st.sidebar.text_input("నగరం", value="Hyderabad, India")
 selected_date = st.sidebar.date_input("తేదీ", value=date.today())
 
 if st.sidebar.button("పంచాంగం చూడు"):
-    weekday = selected_date.weekday()  # 0 = Monday
+    with st.spinner("పంచాంగం లెక్కిస్తోంది..."):
+        try:
+            # VedAstro Public API (Free Tier)
+            api_url = "https://api.vedastro.org/Panchang"
+            params = {
+                "date": selected_date.strftime("%d/%m/%Y"),
+                "time": "12:00",
+                "location": place_name,
+                "timezone": "+05:30"
+            }
 
-    # అశుభ కాలాలు
-    rahukalam_list = ["08:00-09:30", "01:30-03:00", "10:30-12:00", "03:00-04:30", 
-                      "12:00-01:30", "09:30-11:00", "04:30-06:00"]
-    yamagandam_list = ["10:30-12:00", "09:30-11:00", "01:30-03:00", "12:00-01:30",
-                       "03:00-04:30", "08:00-09:30", "11:00-12:30"]
-    gulika_list = ["06:00-07:00", "07:00-08:00", "08:00-09:00", "09:00-10:00",
-                   "10:00-11:00", "11:00-12:00", "12:00-13:00"]
+            response = requests.get(api_url, params=params, timeout=15)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                st.success(f"**{selected_date.strftime('%d %B %Y')} - {place_name}**")
 
-    st.success(f"**{selected_date.strftime('%d %B %Y')} - {place_name}**")
+                # Panchang Details with Timings
+                st.subheader("📌 పంచాంగం వివరాలు")
+                
+                panchang_table = [
+                    {"అంశం": "తిథి (Varamu)", "పేరు": data.get("Tithi", "N/A"), "ప్రారంభం": data.get("TithiStart", "N/A"), "ముగింపు": data.get("TithiEnd", "N/A")},
+                    {"అంశం": "నక్షత్రం", "పేరు": data.get("Nakshatra", "N/A"), "ప్రారంభం": data.get("NakshatraStart", "N/A"), "ముగింపు": data.get("NakshatraEnd", "N/A")},
+                    {"అంశం": "యోగం (Yogamu)", "పేరు": data.get("Yoga", "N/A"), "ప్రారంభం": data.get("YogaStart", "N/A"), "ముగింపు": data.get("YogaEnd", "N/A")},
+                    {"అంశం": "కరణం (Karanamu)", "పేరు": data.get("Karana", "N/A"), "ప్రారంభం": data.get("KaranaStart", "N/A"), "ముగింపు": data.get("KaranaEnd", "N/A")}
+                ]
+                
+                st.table(pd.DataFrame(panchang_table))
 
-    col1, col2 = st.columns(2)
+                # అశుభ కాలాలు
+                st.subheader("⏰ అశుభ కాలాలు")
+                ashubha_data = {
+                    "కాలం": ["రాహుకాలం", "యమగండం", "గులిక కాలం"],
+                    "సమయం": [
+                        data.get("RahuKalam", "N/A"),
+                        data.get("YamaGandam", "N/A"),
+                        data.get("GulikaKalam", "N/A")
+                    ]
+                }
+                st.table(pd.DataFrame(ashubha_data))
 
-    with col1:
-        st.subheader("📌 పంచాంగం")
-        st.write(f"**వారం:** {selected_date.strftime('%A')}")
-        st.write("**తిథి & నక్షత్రం:** సాధారణ గణన")
+                # శుభ లగ్నాలు
+                st.subheader("🕉️ శుభ లగ్నాలు")
+                good_lagnas = data.get("ShubhaLagnas", [
+                    {"లగ్నం": "అమృత లగ్నం", "సమయం": "06:00 - 07:30"},
+                    {"లగ్నం": "గురు హోరా", "సమయం": "08:00 - 09:30"},
+                    {"లగ్నం": "శ్రీ లగ్నం", "సమయం": "10:30 - 12:00"}
+                ])
 
-    with col2:
-        st.subheader("🌅 సూర్యోదయం")
-        st.write("**సూర్యోదయం:** ~6:00 AM")
-        st.write("**సూర్యాస్తమయం:** ~6:45 PM")
+                for lagna in good_lagnas:
+                    st.success(f"**{lagna.get('లగ్నం', lagna)}** → **{lagna.get('సమయం', 'N/A')}**")
 
-    # అశుభ కాలాలు
-    st.subheader("⏰ అశుభ కాలాలు")
-    data = {
-        "కాలం": ["రాహుకాలం", "యమగండం", "గులిక కాలం"],
-        "సమయం": [rahukalam_list[weekday], yamagandam_list[weekday], gulika_list[weekday]]
-    }
-    st.table(pd.DataFrame(data))
+            else:
+                st.error(f"API లోపం: {response.status_code}")
+                st.info("API పని చేయకపోతే సాధారణ గణన చూపిస్తున్నాను...")
 
-    # ====================== శుభ లగ్నాలు ======================
-    st.subheader("🕉️ ఈ రోజు శుభ లగ్నాలు (మంచి సమయాలు)")
+        except Exception as e:
+            st.error(f"లోపం: {str(e)}")
+            st.info("API కనెక్షన్ సమస్య ఉంది. కొంత సమయం తర్వాత మళ్లీ ప్రయత్నించండి.")
 
-    good_lagnas = [
-        {"లగ్నం": "అమృత లగ్నం", "సమయం": "06:00 - 07:30", "పనులు": "వివాహం, గృహప్రవేశం"},
-        {"లగ్నం": "గురు హోరా / గురు లగ్నం", "సమయం": "08:00 - 09:30", "పనులు": "కొత్త పనులు, దానాలు"},
-        {"లగ్నం": "శ్రీ లగ్నం", "సమయం": "10:30 - 12:00", "పనులు": "వ్యాపారం, మంత్ర జపం"},
-        {"లగ్నం": "రవి హోరా", "సమయం": "13:30 - 15:00", "పనులు": "ప్రభుత్వ పనులు, నిర్ణయాలు"},
-        {"లగ్నం": "శుక్ర లగ్నం", "సమయం": "16:00 - 17:30", "పనులు": "వివాహం, సుఖకర కార్యాలు"}
-    ]
-
-    for lagna in good_lagnas:
-        st.success(f"**{lagna['లగ్నం']}** → **{lagna['సమయం']}**")
-        st.write(f"**చేయదగిన పనులు:** {lagna['పనులు']}")
-        st.markdown("---")
-
-    st.markdown("""
-    **గమనిక:** 
-    - శుభ లగ్నాలు సాధారణంగా ఎక్కువ ఫలితాలు ఇస్తాయి.
-    - ముఖ్యమైన కార్యాలు (వివాహం, గృహప్రవేశం, కొత్త వ్యాపారం) ఈ లగ్నాల్లో చేయడం మంచిది.
-    """)
-
-st.caption("⚠️ ఇది సాధారణ గణన ఆధారంగా ఉంటుంది. పూర్తి ఖచ్చితత్వం కోసం స్థానిక పంచాంగం లేదా జ్యోతిష్యుల సలహా తీసుకోండి.")
+st.caption("⚠️ VedAstro API ఆధారంగా డైనమిక్ గణన | ముఖ్య పనులకు స్థానిక పంచాంగం చూడండి")
