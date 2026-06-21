@@ -1,3 +1,4 @@
 streamlit
 vedastro
 pandas
+requests
